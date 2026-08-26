@@ -120,7 +120,19 @@ func handlerAddfeed(s *state, cmd command) error {
 		return err
 	}
 
-	fmt.Print(feedEntry)
+	fmt.Println(feedEntry)
+	return nil
+}
+
+func handlerFeeds(s *state, _ command) error {
+	prettyFeedEntries, err := s.db.PrettyListFeeds(context.Background())
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range prettyFeedEntries {
+		fmt.Println(entry)
+	}
 	return nil
 }
 

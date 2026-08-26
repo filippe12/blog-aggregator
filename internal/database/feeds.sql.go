@@ -64,3 +64,39 @@ func (q *Queries) DeleteFeeds(ctx context.Context) error {
 	_, err := q.db.ExecContext(ctx, deleteFeeds)
 	return err
 }
+
+const prettyListFeeds = `-- name: PrettyListFeeds :many
+SELECT feeds.name, feeds.url, users.name AS username
+FROM feeds
+JOIN users
+ON feeds.user_id = users.id
+`
+
+type PrettyListFeedsRow struct {
+	Name     string
+	Url      string
+	Username string
+}
+
+func (q *Queries) PrettyListFeeds(ctx context.Context) ([]PrettyListFeedsRow, error) {
+	rows, err := q.db.QueryContext(ctx, prettyListFeeds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PrettyListFeedsRow
+	for rows.Next() {
+		var i PrettyListFeedsRow
+		if err := rows.Scan(&i.Name, &i.Url, &i.Username); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
