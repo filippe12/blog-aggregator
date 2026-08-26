@@ -23,9 +23,10 @@ func main() {
 	}
 	commands.register("login", handlerLogin)
 	commands.register("register", handlerRegister)
-	commands.register("reset", handlerReset)
 	commands.register("users", handlerUsers)
 	commands.register("agg", handlerAgg)
+	commands.register("addfeed", handlerAddfeed)
+	commands.register("reset", handlerReset)
 
 	cliArguments := os.Args
 	if len(cliArguments) < 2 {

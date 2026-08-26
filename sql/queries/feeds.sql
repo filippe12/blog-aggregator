@@ -10,3 +10,6 @@ VALUES (
 )
 
 RETURNING *;
+
+-- name: DeleteFeeds :exec
+DELETE FROM feeds WHERE true;

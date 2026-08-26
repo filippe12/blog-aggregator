@@ -96,8 +96,39 @@ func handlerAgg(_ *state, _ command) error {
 	return nil
 }
 
+func handlerAddfeed(s *state, cmd command) error {
+	if len(cmd.arguments) < 2 {
+		return fmt.Errorf("not enough arguments, run: addfeed <name> <url>")
+	}
+
+	name := cmd.arguments[0]
+	url := cmd.arguments[1]
+	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	if err != nil {
+		return err
+	}
+
+	feedEntry, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name:      name,
+		Url:       url,
+		UserID:    user.ID,
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Print(feedEntry)
+	return nil
+}
+
 func handlerReset(s *state, _ command) error {
 	if err := s.db.DeleteUsers(context.Background()); err != nil {
+		log.Fatal(err)
+	}
+	if err := s.db.DeleteFeeds(context.Background()); err != nil {
 		log.Fatal(err)
 	}
 
