@@ -21,6 +21,12 @@ FROM feeds
 JOIN users
 ON feeds.user_id = users.id;
 
+-- name: MarkFeedFetched :exec
+UPDATE feeds
+SET
+    updated_at = $2,
+    last_fetched_at = $2
+WHERE id = $1;
 
 -- name: DeleteFeeds :exec
 DELETE FROM feeds WHERE true;

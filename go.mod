@@ -1,7 +1,0 @@
-module github.com/filippe12/blog-aggregator
-
-go 1.22.2
-
-require github.com/google/uuid v1.6.0
-
-require github.com/lib/pq v1.12.3

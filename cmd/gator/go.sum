@@ -1,3 +1,5 @@
+github.com/filippe12/blog-aggregator v0.0.0-20260827165042-aae771fdb0ec h1:CFL34Sz2G6gbeF9AfpFIOMDNAYnz4sYmo7whUd6Qc1I=
+github.com/filippe12/blog-aggregator v0.0.0-20260827165042-aae771fdb0ec/go.mod h1:qhy525m+S87e7OQE0VL/bX2UGEN+8NbErNqswiyCk50=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/lib/pq v1.12.3 h1:tTWxr2YLKwIvK90ZXEw8GP7UFHtcbTtty8zsI+YjrfQ=
