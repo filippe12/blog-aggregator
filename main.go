@@ -27,6 +27,8 @@ func main() {
 	commands.register("agg", handlerAgg)
 	commands.register("addfeed", handlerAddfeed)
 	commands.register("feeds", handlerFeeds)
+	commands.register("follow", handlerFollow)
+	commands.register("following", handlerFollowing)
 	commands.register("reset", handlerReset)
 
 	cliArguments := os.Args

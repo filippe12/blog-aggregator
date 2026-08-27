@@ -120,6 +120,14 @@ func handlerAddfeed(s *state, cmd command) error {
 		return err
 	}
 
+	s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID:    user.ID,
+		FeedID:    feedEntry.ID,
+	})
+
 	fmt.Println(feedEntry)
 	return nil
 }
@@ -136,11 +144,58 @@ func handlerFeeds(s *state, _ command) error {
 	return nil
 }
 
+func handlerFollow(s *state, cmd command) error {
+	if len(cmd.arguments) < 1 {
+		return fmt.Errorf("not enough arguments, run: follow <url>")
+	}
+	url := cmd.arguments[0]
+	username := s.cfg.CurrentUserName
+
+	user, err := s.db.GetUser(context.Background(), username)
+	if err != nil {
+		return err
+	}
+	feed, err := s.db.GetFeedByUrl(context.Background(), url)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID:    user.ID,
+		FeedID:    feed.ID,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func handlerFollowing(s *state, _ command) error {
+	username := s.cfg.CurrentUserName
+	feedFollows, err := s.db.GetFeedFollowsForUser(context.Background(), username)
+	if err != nil {
+		return err
+	}
+
+	for _, feedFollow := range feedFollows {
+		fmt.Println("*", feedFollow.FeedName)
+	}
+
+	return nil
+}
+
 func handlerReset(s *state, _ command) error {
 	if err := s.db.DeleteUsers(context.Background()); err != nil {
 		log.Fatal(err)
 	}
 	if err := s.db.DeleteFeeds(context.Background()); err != nil {
+		log.Fatal(err)
+	}
+	if err := s.db.DeleteFeedFollows(context.Background()); err != nil {
 		log.Fatal(err)
 	}
 
