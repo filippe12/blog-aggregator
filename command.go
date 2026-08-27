@@ -32,6 +32,19 @@ func (c *commands) register(name string, f func(*state, command) error) {
 	c.handler[name] = f
 }
 
+func middlewareLoggedIn(handler func(s *state, cmd command, user database.User) error) func(*state, command) error {
+
+	return func(s *state, cmd command) error {
+		user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+		if err != nil {
+			return err
+		}
+
+		return handler(s, cmd, user)
+	}
+
+}
+
 func handlerLogin(s *state, cmd command) error {
 	if len(cmd.arguments) == 0 {
 		return fmt.Errorf("username is required for login command")
@@ -96,17 +109,13 @@ func handlerAgg(_ *state, _ command) error {
 	return nil
 }
 
-func handlerAddfeed(s *state, cmd command) error {
+func handlerAddfeed(s *state, cmd command, user database.User) error {
 	if len(cmd.arguments) < 2 {
 		return fmt.Errorf("not enough arguments, run: addfeed <name> <url>")
 	}
 
 	name := cmd.arguments[0]
 	url := cmd.arguments[1]
-	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return err
-	}
 
 	feedEntry, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
 		ID:        uuid.New(),
@@ -144,17 +153,12 @@ func handlerFeeds(s *state, _ command) error {
 	return nil
 }
 
-func handlerFollow(s *state, cmd command) error {
+func handlerFollow(s *state, cmd command, user database.User) error {
 	if len(cmd.arguments) < 1 {
 		return fmt.Errorf("not enough arguments, run: follow <url>")
 	}
 	url := cmd.arguments[0]
-	username := s.cfg.CurrentUserName
 
-	user, err := s.db.GetUser(context.Background(), username)
-	if err != nil {
-		return err
-	}
 	feed, err := s.db.GetFeedByUrl(context.Background(), url)
 	if err != nil {
 		return err
@@ -166,6 +170,27 @@ func handlerFollow(s *state, cmd command) error {
 		UpdatedAt: time.Now(),
 		UserID:    user.ID,
 		FeedID:    feed.ID,
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func handlerUnfollow(s *state, cmd command, user database.User) error {
+	if len(cmd.arguments) < 1 {
+		return fmt.Errorf("not enough arguments, run: unfollow <url>")
+	}
+
+	feed, err := s.db.GetFeedByUrl(context.Background(), cmd.arguments[0])
+	if err != nil {
+		return err
+	}
+
+	err = s.db.UnfollowFeed(context.Background(), database.UnfollowFeedParams{
+		UserID: user.ID,
+		FeedID: feed.ID,
 	})
 	if err != nil {
 		return err
