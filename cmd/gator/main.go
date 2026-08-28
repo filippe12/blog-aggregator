@@ -24,7 +24,7 @@ func main() {
 	commands.register("login", handlerLogin)
 	commands.register("register", handlerRegister)
 	commands.register("users", handlerUsers)
-	commands.register("agg", handlerAgg)
+	commands.register("agg", middlewareLoggedIn(handlerAgg))
 	commands.register("addfeed", middlewareLoggedIn(handlerAddfeed))
 	commands.register("feeds", handlerFeeds)
 	commands.register("follow", middlewareLoggedIn(handlerFollow))

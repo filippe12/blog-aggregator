@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -99,13 +101,23 @@ func handlerUsers(s *state, _ command) error {
 	return nil
 }
 
-func handlerAgg(_ *state, _ command) error {
-	feed, err := rss.FetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+func handlerAgg(s *state, cmd command, user database.User) error {
+	if len(cmd.arguments) < 1 {
+		return fmt.Errorf("not enough arguments, run: agg <time_interval_seconds>")
+	}
+	interval, err := time.ParseDuration(cmd.arguments[0])
 	if err != nil {
 		return err
 	}
 
-	fmt.Print(feed)
+	ticker := time.NewTicker(interval)
+	for range ticker.C {
+		err := scrapeFeeds(s, user)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -222,6 +234,35 @@ func handlerReset(s *state, _ command) error {
 	}
 	if err := s.db.DeleteFeedFollows(context.Background()); err != nil {
 		log.Fatal(err)
+	}
+
+	return nil
+}
+
+func scrapeFeeds(s *state, user database.User) error {
+	nextFeed, err := s.db.GetNextFeedToFetch(context.Background(), user.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("found 0 following feeds, make sure you are following at least one feed")
+	} else if err != nil {
+		return err
+	}
+
+	if err = s.db.MarkFeedFetched(
+		context.Background(),
+		database.MarkFeedFetchedParams{
+			ID:        nextFeed.ID,
+			UpdatedAt: time.Now(),
+		}); err != nil {
+		return err
+	}
+
+	feed, err := rss.FetchFeed(context.Background(), nextFeed.Url)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range feed.Channel.Item {
+		fmt.Println("*", item.Title)
 	}
 
 	return nil
