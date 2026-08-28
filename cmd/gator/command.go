@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/filippe12/blog-aggregator/internal/database"
 	"github.com/filippe12/blog-aggregator/internal/rss"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 type command struct {
@@ -225,14 +227,45 @@ func handlerFollowing(s *state, _ command) error {
 	return nil
 }
 
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	browseLimit := 2
+	if len(cmd.arguments) > 0 {
+		limit, err := strconv.Atoi(cmd.arguments[0])
+		if err != nil {
+			return err
+		} else {
+			browseLimit = limit
+		}
+	}
+
+	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  int32(browseLimit),
+	})
+	if err != nil {
+		return err
+	} else if len(posts) == 0 {
+		return fmt.Errorf("no posts found")
+	}
+
+	for _, post := range posts {
+		fmt.Println(post)
+	}
+
+	return nil
+}
+
 func handlerReset(s *state, _ command) error {
-	if err := s.db.DeleteUsers(context.Background()); err != nil {
+	if err := s.db.DeletePosts(context.Background()); err != nil {
+		log.Fatal(err)
+	}
+	if err := s.db.DeleteFeedFollows(context.Background()); err != nil {
 		log.Fatal(err)
 	}
 	if err := s.db.DeleteFeeds(context.Background()); err != nil {
 		log.Fatal(err)
 	}
-	if err := s.db.DeleteFeedFollows(context.Background()); err != nil {
+	if err := s.db.DeleteUsers(context.Background()); err != nil {
 		log.Fatal(err)
 	}
 
@@ -262,7 +295,34 @@ func scrapeFeeds(s *state, user database.User) error {
 	}
 
 	for _, item := range feed.Channel.Item {
-		fmt.Println("*", item.Title)
+		publishedAt, parseError := time.Parse(time.Layout, item.PubDate)
+		_, err := s.db.CreatePost(context.Background(), database.CreatePostParams{
+			ID:        uuid.New(),
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+			Title:     item.Title,
+			Url:       item.Link,
+			Description: sql.NullString{
+				String: item.Description,
+				Valid:  item.Description != "",
+			},
+			PublishedAt: sql.NullTime{
+				Time:  publishedAt,
+				Valid: parseError == nil,
+			},
+			FeedID: nextFeed.ID,
+		})
+		if err != nil {
+			var pqErr *pq.Error
+
+			if errors.As(err, &pqErr) &&
+				pqErr.Code == "23505" &&
+				pqErr.Constraint == "unique_url" {
+				continue
+			}
+
+			return err
+		}
 	}
 
 	return nil
